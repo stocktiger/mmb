@@ -45,21 +45,26 @@ const STRATEGY_NAME: &str = "binance_demo";
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // initialise exchange client
     let engine_config = EngineBuildConfig::new(vec![Box::new(BinanceBuilder)]);
 
+    // load up configs and credentials from toml
     let init_settings = InitSettings::<ExampleStrategySettings>::Load {
         config_path: CONFIG_PATH.to_owned(),
         credentials_path: CREDENTIALS_PATH.to_owned(),
     };
+
     loop {
         let engine =
             launch_trading_engine(&engine_config, init_settings.clone(), |settings, ctx| {
+                // Data feed initialisation
                 spawn_future(
                     "Save order books",
                     SpawnFutureFlags::STOP_BY_TOKEN | SpawnFutureFlags::DENY_CANCELLATION,
                     start_liquidity_order_book_saving(ctx.clone()),
                 );
 
+                // Strategy parameters in struct
                 Box::new(ExampleStrategy::new(
                     settings.strategy.exchange_account_id(),
                     settings.strategy.currency_pair(),
@@ -89,7 +94,9 @@ async fn start_liquidity_order_book_saving(ctx: Arc<EngineContext>) -> Result<()
             Err(err) => eprintln!("Error occurred: {err:?}"),
             Ok(event) => {
                 let market_account_id = match event {
+                    // manage order book updates
                     ExchangeEvent::OrderBookEvent(ob_event) => snapshots_service.update(ob_event),
+                    // manage orders
                     ExchangeEvent::OrderEvent(order_event) => match order_event.event_type {
                         OrderEventType::CreateOrderSucceeded
                         | OrderEventType::OrderCompleted { .. }

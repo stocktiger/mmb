@@ -505,6 +505,7 @@ impl Binance {
     ) -> ExchangeBalancesAndPositions {
         let balances = raw_balances
             .iter()
+            .filter(|balance| balance.asset.as_str() != "NFT")
             .map(|balance| ExchangeBalance {
                 currency_code: self.get_currency_code_expected(&balance.asset.as_str().into()),
                 balance: balance.free,

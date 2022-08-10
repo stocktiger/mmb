@@ -173,10 +173,15 @@ impl ExchangeEvents {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum AllowedEventSourceType {
-    #[default]
     All,
     FallbackOnly,
     NonFallback,
+}
+
+impl Default for AllowedEventSourceType {
+    fn default() -> Self {
+        AllowedEventSourceType::All
+    }
 }

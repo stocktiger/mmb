@@ -24,7 +24,7 @@ use mmb_core::exchanges::traits::{
 use mmb_core::exchanges::{common::CurrencyCode, common::CurrencyId, traits::Support};
 use mmb_core::order_book::event::{EventType, OrderBookEvent};
 use mmb_core::order_book::order_book_data::OrderBookData;
-use mmb_core::orders::order::*;
+use mmb_core::orders::order::{*, self};
 use mmb_core::settings::ExchangeSettings;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
@@ -89,8 +89,9 @@ impl Support for Binance {
                     return Ok(());
                 }
 
+                // Change here if channel depth changes in toml
                 // TODO handle public stream
-                if stream.ends_with("depth20") {
+                if stream.ends_with("depth20@100ms") {
                     self.process_snapshot_update(currency_pair, data)?;
                     return Ok(());
                 }
@@ -265,6 +266,8 @@ impl Binance {
         let raw_bids = data["bids"]
             .as_array()
             .ok_or_else(|| anyhow!("Unable to parse 'bids' in Binance"))?;
+
+        log::info!("{} M: Oderbook update A {:?} B {:?}", last_update_id, raw_asks, raw_bids);
 
         let asks = get_order_book_side(raw_asks)?;
         let bids = get_order_book_side(raw_bids)?;

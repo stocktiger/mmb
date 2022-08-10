@@ -132,6 +132,7 @@ async fn before_engine_context_init<StrategySettings>(
 where
     StrategySettings: BaseStrategySettings + Clone + Debug + DeserializeOwned + Serialize,
 {
+    // set up logging correctly
     init_infrastructure("log.txt");
 
     log::info!("*****************************");
@@ -139,6 +140,7 @@ where
 
     let lifetime_manager = init_lifetime_manager();
 
+    // load settings
     let settings = match init_user_settings {
         InitSettings::Directly(v) => v,
         InitSettings::Load {
@@ -151,7 +153,7 @@ where
             }
         }
     };
-
+    // set up other things
     let (events_sender, events_receiver) = broadcast::channel(CHANNEL_MAX_EVENTS_COUNT);
 
     let timeout_manager = create_timeout_manager(&settings.core, build_settings);
@@ -165,6 +167,7 @@ where
 
     let exchange_blocker = ExchangeBlocker::new(exchange_account_ids);
 
+    // connect to exchange
     let exchanges = create_exchanges(
         &settings.core,
         build_settings,
@@ -175,6 +178,7 @@ where
     )
     .await;
 
+    // gets specific currency pairs and maps them to exchanges
     let exchanges_map: DashMap<_, _> = exchanges
         .into_iter()
         .map(|exchange| (exchange.exchange_account_id, exchange))
@@ -189,6 +193,7 @@ where
 
     let balance_manager = BalanceManager::new(currency_pair_to_symbol_converter);
 
+    // get balances of current tokens on exchange
     BalanceManager::update_balances_for_exchanges(
         balance_manager.clone(),
         lifetime_manager.stop_token(),
@@ -203,6 +208,7 @@ where
 
     let (finish_graceful_shutdown_tx, finish_graceful_shutdown_rx) = oneshot::channel();
 
+    // link up the database for recording
     let database = if let Some(db) = &settings.core.database {
         apply_migrations(&db.url, db.migrations.clone())
             .await
